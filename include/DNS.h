@@ -13,7 +13,7 @@ typedef struct
     uint16_t addNum;
 }DNS_Header;
 
-typedef struct
+typedef struct 
 {
     unsigned char *name;
     uint16_t qtype;
@@ -40,6 +40,35 @@ typedef enum{
     IQUERY = 1,
     STATUS = 2
 }DNS_OPCODE;
+
+typedef enum{
+    A = 1,
+    NS = 2,
+    CNAME = 5,
+    SOA = 6,
+    PTR = 12,
+    MX = 15,
+    TXT = 16,
+    AAAA = 28,
+    SRV = 33,
+    AXFR = 252,
+    ANY = 255
+}DNS_QUERY_TYPE;
+
+typedef enum{
+    IN = 1,
+    CS = 2,
+    CH = 3,
+    HS = 4,
+}DNS_QUERY_CLASS;
+
+uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC);
+uint16_t generateID();
+DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum);
+unsigned char *domain_to_dns_format(const char *domain);
+char* dns_format_to_domain(unsigned char *dns_format);
+DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLASS qclass);
+
 
 #endif
 
