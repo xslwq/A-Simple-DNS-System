@@ -3,6 +3,14 @@
 #include <time.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <stdarg.h>
+#include <stdio.h>
+
+#define DEFAULT_SERVER "8.8.8.8"
+#define DNS_SERVER_PORT 53
 
 uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC)
 {
@@ -24,6 +32,7 @@ uint16_t generateID()
     return rand() % 0xFFFF;
 }
 
+//根据参数生成DNS报头，用法：generateHeader(_QUERY类型,_操作码,_是否递归查询,_响应码,_是否截断,_问题数,_回答数,_授权数,_附加数)
 DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum)
 {
     DNS_Header *header = (DNS_Header *)malloc(sizeof(DNS_Header));
@@ -91,4 +100,40 @@ char* dns_format_to_domain(unsigned char *dns_format)
     }
     domain[k] = '\0';
     return domain;
+}
+//将报头和查询部分绑定在一起
+unsigned char* bind_header_query(DNS_Header *header, DNS_Query *query)
+{
+    unsigned char *buf = (unsigned char *)malloc(sizeof(DNS_Header) + strlen((const char *)query->name) + 1 + sizeof(query->qtype) + sizeof(query->qclass));
+    memcpy(buf, header, sizeof(DNS_Header));
+    memcpy(buf + sizeof(DNS_Header), query->name, strlen(query->name) + 1);
+    memcpy(buf + sizeof(DNS_Header) + strlen(query->name) + 1, &query->qtype, sizeof(query->qtype));
+    memcpy(buf + sizeof(DNS_Header) + strlen(query->name) + 1 + sizeof(query->qtype), &query->qclass, sizeof(query->qclass));
+    return buf;
+}
+
+int send_query_to_DNS_server(const char *domain, DNS_QUERY_TYPE querytype)
+{
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0)
+    {
+        perror("socket");
+        exit(1);
+    }
+    struct sockaddr_in DNShost;
+    memset(&DNShost, 0, sizeof(DNShost));/*在初始化 struct sockaddr_in 结构体之后，我们需要将其余的字节位置都置为0，以免出现意外的问题。*/
+    DNShost.sin_family = AF_INET;
+    DNShost.sin_port = htons(DNS_SERVER_PORT);
+    DNShost.sin_addr.s_addr = inet_addr(DEFAULT_SERVER);
+
+    unsigned char *buf=bind_header_query(generateHeader(query, QUERY, 0, 0, 0, 1, 0, 0, 0), generateQuery(domain, querytype, IN));
+    
+    int sent = sendto(sock, buf, sizeof(buf), 0, (struct sockaddr *)&DNShost, sizeof(DNShost));
+    if (sent < 0)
+    {
+        perror("sendto");
+        exit(1);
+    }
+    free(buf);
+    return sock;
 }
