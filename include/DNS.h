@@ -64,11 +64,17 @@ typedef enum{
 
 uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC);
 uint16_t generateID();
+
 DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum);
-unsigned char *domain_to_dns_format(const char *domain);
+
 char* dns_format_to_domain(unsigned char *dns_format);
+
 DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLASS qclass);
 
+unsigned char *domain_to_dns_format(const char *domain);
+unsigned char *bind_header_query(DNS_Header *header, DNS_Query *query);
+
+int send_query_to_DNS_server(const char *domain, DNS_QUERY_TYPE querytype);
 
 #endif
 
