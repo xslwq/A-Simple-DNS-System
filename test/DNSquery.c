@@ -8,11 +8,12 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc != 3)
     {
-        printf("Usage: %s <domain>\n", argv[0]);
+        printf("Usage: %s <domain> <type>\n", argv[0]);
         exit(1);
     }
-    int sock=send_query_to_DNS_server(argv[1],A);
+
+    int sock=client_to_server(argv[1],stringToQueryType(argv[2]));
     return 0;
 }
