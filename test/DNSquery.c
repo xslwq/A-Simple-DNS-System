@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../include/DNS.h"
 
@@ -13,7 +14,7 @@ int main(int argc, char *argv[])
         printf("Usage: %s <domain> <type>\n", argv[0]);
         exit(1);
     }
-
-    int sock=client_to_server(argv[1],stringToQueryType(argv[2]));
+    DNS_RR*rr = recv_from_server(client_to_server(argv[1],stringToQueryType(argv[2])), sizeof(DNS_Header) + strlen(argv[1]) + 1 + sizeof(stringToQueryType(argv[2])) + sizeof(IN));
     return 0;
 }
+

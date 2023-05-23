@@ -30,6 +30,7 @@ typedef struct
     unsigned char *rdata;
 }DNS_RR;
 
+
 typedef enum
 {
     Q = 0,
@@ -88,13 +89,8 @@ DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLA
 unsigned char *domain_to_dns_format(const char *domain);
 unsigned char *bind_header_query(DNS_Header *header, DNS_Query *query);
 
-int client_to_server(const char *domain, DNS_QUERY_TYPE querytype);
-
 void isNOERROR(uint16_t flags);
-void recv_from_server(int sock,int offset);
 
 DNS_QUERY_TYPE stringToQueryType(const char* str);
-
-DNS_RR* getRR(char *buf,int offset,uint16_t awnserNum);
 
 #endif
