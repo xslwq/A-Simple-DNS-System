@@ -9,7 +9,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define RECV_BUF_SIZE 1024
+#define RECV_BUF_SIZE 500
 #define DEFAULT_SERVER "8.8.8.8"
 #define DNS_SERVER_PORT 53
 
@@ -51,7 +51,7 @@ int client_to_server(const char *domain, DNS_QUERY_TYPE querytype)
         perror("sendto");
         exit(1);
     }
-
+    free(buf);
     return sock;
 }
 
@@ -141,7 +141,6 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             arrayRR[i].name = (char *)malloc(size * sizeof(char));
             memcpy(arrayRR[i].name, buf + compptr, size);
             arrayRR[i].name = (unsigned char *)dns_format_to_domain(arrayRR[i].name);
-            printf("name:%s\n", arrayRR[i].name);
             ptr += 2;
             memcpy(&(arrayRR[i].type), buf + ptr, 2);
             memcpy(&(arrayRR[i]._class), buf + ptr + 2, 2);
@@ -156,12 +155,7 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             {
             case A:
             {
-                printf("data_len:%u\n", arrayRR[i].data_len);
-                printf("%p",arrayRR[i].rdata);
-                printf("A\n");
-                printf("1");
-                arrayRR[i].rdata = (unsigned char*)malloc(arrayRR[i].data_len * sizeof(unsigned char));
-                printf("1");
+                arrayRR[i].rdata = (unsigned char*)malloc(arrayRR[i].data_len * sizeof(char));
                 memcpy(arrayRR[i].rdata, buf + ptr, arrayRR[i].data_len);
                 ptr += arrayRR[i].data_len;
                 printf("data_len:%u\n", arrayRR[i].data_len);
@@ -178,7 +172,6 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             }
             case MX:
             {
-                printf("MX\n");
                 char *rdata = (char *)malloc(256 * sizeof(char));
                 memcpy(rdata, buf + ptr, 2);
                 ptr += 2;
@@ -187,14 +180,26 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 memcpy(rdata + 2, tempdomain, domainlen);
                 arrayRR[i].rdata = malloc(domainlen * sizeof(char) + 2);
                 memcpy(arrayRR[i].rdata, rdata, domainlen + 2);
-                for (int j = 2; j <= domainlen; j++)
-                {
-                    printf("%c", arrayRR[i].rdata[j]);
-                }
-                printf("\n");
                 ptr += arrayRR[i].data_len - 2;
                 free(tempdomain);
                 free(rdata);
+
+                printf("Resource Record %d:\n", i + 1);
+                printf(" name:%s\n", arrayRR[i].name);
+                printf(" type:%s\n", querytypetoString(arrayRR[i].type));
+                printf(" class:%u\n", arrayRR[i]._class);
+                printf(" ttl:%us\n", arrayRR[i].ttl);
+                printf(" data_len:%u\n", arrayRR[i].data_len);
+                uint16_t preference= (arrayRR[i].rdata[0] << 8) | arrayRR[i].rdata[1];
+                printf(" preference:%u\n", preference);
+                char* exchange = dealCompressPointer(arrayRR[i].rdata, 2);
+                printf(" exchange:");
+                for(int j=2;j<domainlen;j++)
+                {
+                    printf("%c",arrayRR[i].rdata[j]);
+                }
+                printf("\n");
+
                 break;
             }
             case CNAME:
@@ -215,7 +220,7 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 break;
             }
             default:
-                perror("type not support\n");
+                perror("detect:type not support\n");
                 exit(1);
                 break;
             }

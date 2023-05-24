@@ -86,24 +86,24 @@ unsigned char *domain_to_dns_format(const char *domain)
 char *dns_format_to_domain(unsigned char *dns_format)
 {
     int len = strlen(dns_format);
-    char *domain = (char *)malloc(len + 1);
-    memset(domain, 0, len + 1);
+    char *domain = (char *)malloc(len*sizeof(char));
+    memset(domain, 0, len);
     int sectionLen = 0;
-    int i, j;
-    for (i = 0, j = 0; i < len; i++)
+    int i=0;
+    int ptr=0;
+    sectionLen = dns_format[i];
+    while (1)
     {
-        if (dns_format[i] == 0)
+        for(i=ptr;i<ptr+sectionLen;i++)
         {
-            sectionLen = dns_format[i - sectionLen];
-            j = i + 1;
+            domain[i]=dns_format[i+1];
         }
-        else
-        { 
-            domain[i] = dns_format[i];
-        }
+        if(dns_format[ptr+sectionLen]==0) break;
+        domain[ptr+sectionLen]='.';
+        ptr=ptr+sectionLen+1;
+        sectionLen=dns_format[ptr];
     }
-    domain[len] = '\0';
-    printf("len: %ld\n", strlen(domain));
+    domain[len-1] = '\0';
     return domain;
 }
 
@@ -234,3 +234,45 @@ unsigned char *bind_header_query(DNS_Header *header, DNS_Query *query)
     return buf;
 }
 
+DNS_QUERY_CLASS stringtoQueryClass(char* str)
+{
+    if(strcmp(str,"IN")==0)
+    {
+        return IN;
+    }
+    else if(strcmp(str,"CS")==0)
+    {
+        return CS;
+    }
+    else if(strcmp(str,"CH")==0)
+    {
+        return CH;
+    }
+    else if(strcmp(str,"HS")==0)
+    {
+        return HS;
+    }
+    else
+    {
+        fprintf(stderr,"Invalid query class!\n");
+        exit(1);
+        return 0;
+    }
+}
+
+char* queryClasstoString(DNS_QUERY_CLASS class)
+{
+    switch (class)
+    {
+    case IN:
+        return "IN";
+    case CS:
+        return "CS";
+    case CH:
+        return "CH";
+    case HS:
+        return "HS";
+    default:
+        return "Invalid query class!";
+    }
+}
