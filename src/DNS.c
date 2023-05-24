@@ -85,21 +85,25 @@ unsigned char *domain_to_dns_format(const char *domain)
 
 char *dns_format_to_domain(unsigned char *dns_format)
 {
-    char *domain = (char *)malloc(strlen((const char *)dns_format));
-    int k = 0;
-    while (*dns_format != 0)
+    int len = strlen(dns_format);
+    char *domain = (char *)malloc(len + 1);
+    memset(domain, 0, len + 1);
+    int sectionLen = 0;
+    int i, j;
+    for (i = 0, j = 0; i < len; i++)
     {
-        int len = *dns_format++;
-        for (int i = 0; i < len; i++)
+        if (dns_format[i] == 0)
         {
-            domain[k++] = *dns_format++;
+            sectionLen = dns_format[i - sectionLen];
+            j = i + 1;
         }
-        if (*dns_format != 0)
-        {
-            domain[k++] = '.';
+        else
+        { 
+            domain[i] = dns_format[i];
         }
     }
-    domain[k] = '\0';
+    domain[len] = '\0';
+    printf("len: %ld\n", strlen(domain));
     return domain;
 }
 
@@ -154,6 +158,37 @@ DNS_QUERY_TYPE stringToQueryType(const char *str)
         fprintf(stderr, "Invalid query type!\n");
         exit(1);
         return 0;
+    }
+}
+
+char* querytypetoString(DNS_QUERY_TYPE type)
+{
+    switch (type)
+    {
+    case A:
+        return "A";
+    case NS:
+        return "NS";
+    case CNAME:
+        return "CNAME";
+    case SOA:
+        return "SOA";
+    case PTR:
+        return "PTR";
+    case MX:
+        return "MX";
+    case TXT:
+        return "TXT";
+    case AAAA:
+        return "AAAA";
+    case SRV:
+        return "SRV";
+    case AXFR:
+        return "AXFR";
+    case ANY:
+        return "ANY";
+    default:
+        return "Invalid query type!";
     }
 }
 

@@ -83,6 +83,7 @@ uint16_t generateID();
 DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum);
 
 char *dns_format_to_domain(unsigned char *dns_format);
+char* querytypetoString(DNS_QUERY_TYPE type);
 
 DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLASS qclass);
 

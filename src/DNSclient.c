@@ -101,13 +101,10 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
     int ptr = sendDataOffset;
     int size = 0;
     uint16_t comp = (buf[ptr] << 8) | buf[ptr + 1];
-    printf("sendDataOffset:%d\n", sendDataOffset);
-    printf("comp:%u\n", comp);
     for (int i = 0; i < awnserNum; i++)
     {
         if ((comp & 0xc000) >> 14 != 0x03) // RR非压缩指针
         {
-            printf("RR非压缩指针\n");
             size = 0;
             for (int j = ptr; buf[j] != 0; j++)
             {
@@ -129,10 +126,9 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
         }
         else
         { // RR压缩指针
-            printf("RR压缩指针\n");
             size = 0;
             uint16_t compptr = ((buf[ptr] << 8) | buf[ptr + 1]) & 0x3fff;
-            printf("compptr:%u\n", compptr);
+            // printf("compptr:%u\n", compptr);
             for (int j = compptr;; j++)
             {
                 if (buf[j] == 0)
@@ -141,11 +137,11 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                     break;
                 }
             }
-            printf("size:%d\n", size);
+            // printf("size:%d\n", size);
             arrayRR[i].name = (char *)malloc(size * sizeof(char));
             memcpy(arrayRR[i].name, buf + compptr, size);
             arrayRR[i].name = (unsigned char *)dns_format_to_domain(arrayRR[i].name);
-            printf("arrayRR[i].name:%s\n", arrayRR[i].name);
+            printf("name:%s\n", arrayRR[i].name);
             ptr += 2;
             memcpy(&(arrayRR[i].type), buf + ptr, 2);
             memcpy(&(arrayRR[i]._class), buf + ptr + 2, 2);
@@ -155,19 +151,29 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             arrayRR[i]._class = ntohs(arrayRR[i]._class);
             arrayRR[i].ttl = ntohl(arrayRR[i].ttl);
             arrayRR[i].data_len = ntohs(arrayRR[i].data_len);
-            printf("arrayRR[i].type:%u\n", arrayRR[i].type);
-            printf("arrayRR[i]._class:%u\n", arrayRR[i]._class);
-            printf("arrayRR[i].ttl:%u\n", arrayRR[i].ttl);
-            printf("arrayRR[i].data_len:%u\n", arrayRR[i].data_len);
             ptr += 10;
-            switch (arrayRR[i].type)//目前只支持A、MX、CNAME
+            switch (arrayRR[i].type) // 目前只支持A、MX、CNAME
             {
             case A:
             {
+                printf("data_len:%u\n", arrayRR[i].data_len);
+                printf("%p",arrayRR[i].rdata);
                 printf("A\n");
-                arrayRR[i].rdata = (char *)malloc(arrayRR[i].data_len * sizeof(char));
+                printf("1");
+                arrayRR[i].rdata = (unsigned char*)malloc(arrayRR[i].data_len * sizeof(unsigned char));
+                printf("1");
                 memcpy(arrayRR[i].rdata, buf + ptr, arrayRR[i].data_len);
                 ptr += arrayRR[i].data_len;
+                printf("data_len:%u\n", arrayRR[i].data_len);
+
+                //printf("Resource Record %d:", i + 1);
+                //printf(" name:%s", arrayRR[i].name);
+                //printf(" type:%s", querytypetoString(arrayRR[i].type));
+                //printf(" class:%u", arrayRR[i]._class);
+                //printf(" ttl:%u", arrayRR[i].ttl);
+                //printf(" data_len:%u", arrayRR[i].data_len);
+                //printf(" rdata:%s\n", arrayRR[i].rdata);
+
                 break;
             }
             case MX:
@@ -176,22 +182,36 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 char *rdata = (char *)malloc(256 * sizeof(char));
                 memcpy(rdata, buf + ptr, 2);
                 ptr += 2;
-                char *tempdomain = dealCompressPointer(buf,ptr);
-                tempdomain = (unsigned char *)dns_format_to_domain(tempdomain);
-                memcpy(rdata+2,tempdomain,strlen(tempdomain)+1);
-                arrayRR[i].rdata =malloc(strlen(tempdomain)*sizeof(char)+2);
-                memcpy(arrayRR[i].rdata,rdata,strlen(tempdomain)+3);
-                printf("arrayRR[i].rdata:%s\n",arrayRR[i].rdata+2);
-                ptr += arrayRR[i].data_len;
+                char *tempdomain = dealCompressPointer(buf, ptr);
+                int domainlen = strlen(tempdomain + 2) + 3;
+                memcpy(rdata + 2, tempdomain, domainlen);
+                arrayRR[i].rdata = malloc(domainlen * sizeof(char) + 2);
+                memcpy(arrayRR[i].rdata, rdata, domainlen + 2);
+                for (int j = 2; j <= domainlen; j++)
+                {
+                    printf("%c", arrayRR[i].rdata[j]);
+                }
+                printf("\n");
+                ptr += arrayRR[i].data_len - 2;
+                free(tempdomain);
+                free(rdata);
                 break;
             }
             case CNAME:
             {
                 printf("CNAME\n");
-                arrayRR[i].rdata = dealCompressPointer(buf,ptr);
-                arrayRR[i].rdata = (unsigned char *)dns_format_to_domain(arrayRR[i].rdata);
-                arrayRR[i].data_len = strlen(arrayRR[i].rdata);
+                char* tempdomain = dealCompressPointer(buf, ptr);
                 ptr += arrayRR[i].data_len;
+                arrayRR[i].data_len = strlen(tempdomain+1) + 1;
+                arrayRR[i].rdata = (char *)malloc(arrayRR[i].data_len * sizeof(char));
+                memcpy(arrayRR[i].rdata, tempdomain, arrayRR[i].data_len);
+                printf("data_len:%u\n", arrayRR[i].data_len);
+                for (int j = 1; j < arrayRR[i].data_len; j++)
+                {
+                    printf("%c", arrayRR[i].rdata[j]);
+                }
+                printf("\n");
+                free(tempdomain);
                 break;
             }
             default:
@@ -208,25 +228,22 @@ char *dealCompressPointer(char *buf, int ptr)
 {
     int domainlen = 0;
     char *completedomain = (char *)malloc(256 * sizeof(char));
-    int i=ptr;
-    int j=0;
+    int i = ptr;
+    int j = 0;
     int compptr = 0;
-    printf("1");
     while (1)
     {
-        printf("1");
         if (buf[i] == 0)
         {
             completedomain[domainlen] = buf[i];
             break;
         }
-        else
-        if ((buf[i] & 0xc0) == 0xc0)
+        else if ((buf[i] & 0xc0) == 0xc0)
         {
             compptr = ((buf[i] << 8) | buf[i + 1]) & 0x3fff;
-            for(j=compptr;;j++)
+            for (j = compptr;; j++)
             {
-                if(buf[j]==0)
+                if (buf[j] == 0)
                 {
                     domainlen += 1;
                     memcpy(completedomain + domainlen, buf + j, 1);
