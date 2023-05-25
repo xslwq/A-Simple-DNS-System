@@ -86,24 +86,24 @@ unsigned char *domain_to_dns_format(const char *domain)
 char *dns_format_to_domain(unsigned char *dns_format)
 {
     int len = strlen(dns_format);
-    char *domain = (char *)malloc(len*sizeof(char));
-    memset(domain, 0, len);
+    char *domain = (char *)malloc(len * sizeof(char));
     int sectionLen = 0;
-    int i=0;
-    int ptr=0;
+    int i = 0;
+    int ptr = 0;
     sectionLen = dns_format[i];
     while (1)
     {
-        for(i=ptr;i<ptr+sectionLen;i++)
+        for (i = ptr; i < ptr + sectionLen; i++)
         {
-            domain[i]=dns_format[i+1];
+            domain[i] = dns_format[i + 1];
         }
-        if(dns_format[ptr+sectionLen]==0) break;
-        domain[ptr+sectionLen]='.';
-        ptr=ptr+sectionLen+1;
-        sectionLen=dns_format[ptr];
+        if (dns_format[ptr + sectionLen] == 0)
+            break;
+        domain[ptr + sectionLen] = '.';
+        ptr = ptr + sectionLen + 1;
+        sectionLen = dns_format[ptr];
     }
-    domain[len-1] = '\0';
+    domain[len - 1] = '\0';
     return domain;
 }
 
@@ -161,7 +161,7 @@ DNS_QUERY_TYPE stringToQueryType(const char *str)
     }
 }
 
-char* querytypetoString(DNS_QUERY_TYPE type)
+char *querytypetoString(DNS_QUERY_TYPE type)
 {
     switch (type)
     {
@@ -234,33 +234,33 @@ unsigned char *bind_header_query(DNS_Header *header, DNS_Query *query)
     return buf;
 }
 
-DNS_QUERY_CLASS stringtoQueryClass(char* str)
+DNS_QUERY_CLASS stringtoQueryClass(char *str)
 {
-    if(strcmp(str,"IN")==0)
+    if (strcmp(str, "IN") == 0)
     {
         return IN;
     }
-    else if(strcmp(str,"CS")==0)
+    else if (strcmp(str, "CS") == 0)
     {
         return CS;
     }
-    else if(strcmp(str,"CH")==0)
+    else if (strcmp(str, "CH") == 0)
     {
         return CH;
     }
-    else if(strcmp(str,"HS")==0)
+    else if (strcmp(str, "HS") == 0)
     {
         return HS;
     }
     else
     {
-        fprintf(stderr,"Invalid query class!\n");
+        fprintf(stderr, "Invalid query class!\n");
         exit(1);
         return 0;
     }
 }
 
-char* queryClasstoString(DNS_QUERY_CLASS class)
+char *queryClasstoString(DNS_QUERY_CLASS class)
 {
     switch (class)
     {
@@ -275,4 +275,50 @@ char* queryClasstoString(DNS_QUERY_CLASS class)
     default:
         return "Invalid query class!";
     }
+}
+
+char *dealCompressPointer(char *buf, int ptr)
+{
+    int domainlen = 0;
+    char *completedomain = (char *)malloc(256 * sizeof(char));
+    int i = ptr;
+    int j = 0;
+    int compptr = 0;
+    while (1)
+    {
+        if (buf[i] == 0)
+        {
+            completedomain[domainlen] = buf[i];
+            break;
+        }
+        else if ((buf[i] & 0xc0) == 0xc0)
+        {
+            compptr = ((buf[i] << 8) | buf[i + 1]) & 0x3fff;
+            for (j = compptr;; j++)
+            {
+                if (buf[j] == 0)
+                {
+                    memcpy(completedomain + domainlen, buf + j, 1);
+                    domainlen += 1;
+                    break;
+                }
+                else
+                {
+                    memcpy(completedomain + domainlen, buf + j, 1);
+                    domainlen += 1;
+                }
+            }
+            break;
+        }
+        else
+        {
+            memcpy(completedomain + domainlen, buf + i, 1);
+            domainlen += 1;
+            i += 1;
+        }
+    }
+    char *rdata = (char *)malloc(domainlen * sizeof(char));
+    memcpy(rdata, completedomain, domainlen);
+    free(completedomain);
+    return rdata;
 }

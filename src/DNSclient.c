@@ -16,7 +16,6 @@
 DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum);
 DNS_RR *recv_from_server(int sock, int sendDataOffset);
 int client_to_server(const char *domain, DNS_QUERY_TYPE querytype);
-char *dealCompressPointer(char *buf, int ptr);
 
 int client_to_server(const char *domain, DNS_QUERY_TYPE querytype)
 {
@@ -155,18 +154,26 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             {
             case A:
             {
-                arrayRR[i].rdata = (unsigned char*)malloc(arrayRR[i].data_len * sizeof(char));
+                //bug:malloc: corrupted top size
+                arrayRR[i].rdata = (unsigned char *)malloc(arrayRR[i].data_len * sizeof(char));
                 memcpy(arrayRR[i].rdata, buf + ptr, arrayRR[i].data_len);
                 ptr += arrayRR[i].data_len;
-                printf("data_len:%u\n", arrayRR[i].data_len);
+                printf("data_len1:%u\n", arrayRR[i].data_len);
 
-                //printf("Resource Record %d:", i + 1);
-                //printf(" name:%s", arrayRR[i].name);
-                //printf(" type:%s", querytypetoString(arrayRR[i].type));
-                //printf(" class:%u", arrayRR[i]._class);
-                //printf(" ttl:%u", arrayRR[i].ttl);
-                //printf(" data_len:%u", arrayRR[i].data_len);
-                //printf(" rdata:%s\n", arrayRR[i].rdata);
+                printf("Resource Record %d:\n", i + 1);
+                printf(" name:%s\n", arrayRR[i].name);
+                printf(" type:%s\n", querytypetoString(arrayRR[i].type));
+                printf(" class:%u\n", arrayRR[i]._class);
+                printf(" ttl:%u\n", arrayRR[i].ttl);
+                printf(" data_len:%u\n", arrayRR[i].data_len);
+                printf(" IPaddress:");
+                int a[4]={0};
+                for(int j = 0; j < arrayRR[i].data_len-1; j++)
+                {
+                    a[j] = arrayRR[i].rdata[j];
+                }
+                printf("%d.%d.%d.%d\n", a[0], a[1], a[2], a[3]);
+                printf("\n");
 
                 break;
             }
@@ -176,47 +183,58 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 memcpy(rdata, buf + ptr, 2);
                 ptr += 2;
                 char *tempdomain = dealCompressPointer(buf, ptr);
+                char* tempdomain1 = (unsigned char *)dns_format_to_domain(tempdomain);
                 int domainlen = strlen(tempdomain + 2) + 3;
                 memcpy(rdata + 2, tempdomain, domainlen);
                 arrayRR[i].rdata = malloc(domainlen * sizeof(char) + 2);
                 memcpy(arrayRR[i].rdata, rdata, domainlen + 2);
                 ptr += arrayRR[i].data_len - 2;
-                free(tempdomain);
                 free(rdata);
 
                 printf("Resource Record %d:\n", i + 1);
                 printf(" name:%s\n", arrayRR[i].name);
                 printf(" type:%s\n", querytypetoString(arrayRR[i].type));
-                printf(" class:%u\n", arrayRR[i]._class);
+                printf(" class:%s\n", queryClasstoString(arrayRR[i]._class));
                 printf(" ttl:%us\n", arrayRR[i].ttl);
                 printf(" data_len:%u\n", arrayRR[i].data_len);
                 uint16_t preference= (arrayRR[i].rdata[0] << 8) | arrayRR[i].rdata[1];
                 printf(" preference:%u\n", preference);
-                char* exchange = dealCompressPointer(arrayRR[i].rdata, 2);
+                char* exchange = dns_format_to_domain(arrayRR[i].rdata+2);
                 printf(" exchange:");
-                for(int j=2;j<domainlen;j++)
+                for(int j=0;j<domainlen;j++)
                 {
-                    printf("%c",arrayRR[i].rdata[j]);
+                    printf("%c",tempdomain1[j]);
                 }
                 printf("\n");
-
+                free(tempdomain);
+                free(exchange);
+                free(tempdomain1);
                 break;
             }
             case CNAME:
             {
-                printf("CNAME\n");
                 char* tempdomain = dealCompressPointer(buf, ptr);
+                char* tempdomain1 = (unsigned char *)dns_format_to_domain(tempdomain);
                 ptr += arrayRR[i].data_len;
                 arrayRR[i].data_len = strlen(tempdomain+1) + 1;
                 arrayRR[i].rdata = (char *)malloc(arrayRR[i].data_len * sizeof(char));
                 memcpy(arrayRR[i].rdata, tempdomain, arrayRR[i].data_len);
-                printf("data_len:%u\n", arrayRR[i].data_len);
-                for (int j = 1; j < arrayRR[i].data_len; j++)
+
+                printf("Resource Record %d:\n", i + 1);
+                printf(" name:%s\n", arrayRR[i].name);
+                printf(" type:%s\n", querytypetoString(arrayRR[i].type));
+                printf(" class:%s\n", queryClasstoString(arrayRR[i]._class));
+                printf(" ttl:%us\n", arrayRR[i].ttl);
+                printf(" data_len:%u\n", arrayRR[i].data_len);
+                printf(" cname:");
+                for(int j=0;j<arrayRR[i].data_len-1;j++)
                 {
-                    printf("%c", arrayRR[i].rdata[j]);
+                    printf("%c",tempdomain1[j]);
                 }
                 printf("\n");
+
                 free(tempdomain);
+                free(tempdomain1);
                 break;
             }
             default:
@@ -229,51 +247,6 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
     return arrayRR;
 }
 
-char *dealCompressPointer(char *buf, int ptr)
-{
-    int domainlen = 0;
-    char *completedomain = (char *)malloc(256 * sizeof(char));
-    int i = ptr;
-    int j = 0;
-    int compptr = 0;
-    while (1)
-    {
-        if (buf[i] == 0)
-        {
-            completedomain[domainlen] = buf[i];
-            break;
-        }
-        else if ((buf[i] & 0xc0) == 0xc0)
-        {
-            compptr = ((buf[i] << 8) | buf[i + 1]) & 0x3fff;
-            for (j = compptr;; j++)
-            {
-                if (buf[j] == 0)
-                {
-                    domainlen += 1;
-                    memcpy(completedomain + domainlen, buf + j, 1);
-                    break;
-                }
-                else
-                {
-                    domainlen += 1;
-                    memcpy(completedomain + domainlen, buf + j, 1);
-                }
-            }
-            break;
-        }
-        else
-        {
-            domainlen += 1;
-            memcpy(completedomain + domainlen, buf + i, 1);
-            i += 1;
-        }
-    }
-    char *rdata = (char *)malloc(domainlen * sizeof(char));
-    memcpy(rdata, completedomain, domainlen);
-    free(completedomain);
-    return rdata;
-}
 
 int main(int argc, char *argv[])
 {

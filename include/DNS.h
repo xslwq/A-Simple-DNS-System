@@ -85,6 +85,7 @@ DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC,
 char *dns_format_to_domain(unsigned char *dns_format);
 char* querytypetoString(DNS_QUERY_TYPE type);
 char* queryClasstoString(DNS_QUERY_CLASS class);
+char *dealCompressPointer(char *buf, int ptr);
 
 DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLASS qclass);
 

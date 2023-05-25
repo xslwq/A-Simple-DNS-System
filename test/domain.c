@@ -10,6 +10,5 @@ int main(){
     a[4] = 1;
     char* b = dns_format_to_domain(a);
     printf("%s\n",b);
-    printf("%c\n",b[9]+48);
     free(b);
 }
