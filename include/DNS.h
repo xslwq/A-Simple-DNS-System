@@ -2,6 +2,8 @@
 #define DNS_H
 
 #include <stdint.h>
+#include "cJSON.h"
+#include <time.h>
 
 typedef struct
 {
@@ -80,7 +82,7 @@ typedef enum
 uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC);
 uint16_t generateID();
 
-DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum);
+DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum, uint16_t ID);
 
 char *dns_format_to_domain(unsigned char *dns_format);
 char* querytypetoString(DNS_QUERY_TYPE type);
