@@ -8,10 +8,12 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <sys/time.h>
 
-#define RECV_BUF_SIZE 500
-#define DEFAULT_SERVER "8.8.8.8"
-#define DNS_SERVER_PORT 53
+#define RECV_BUF_SIZE 500             // 接收缓冲区大小
+#define DEFAULT_SERVER "127.0.0.1"    // 默认DNS服务器地址
+#define DNS_SERVER_PORT 53            // DNS服务器端口
+#define TIMEOUT 5                     // 超时时间
 
 DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum);
 DNS_RR *recv_from_server(int sock, int sendDataOffset);
@@ -26,12 +28,12 @@ int client_to_server(const char *domain, DNS_QUERY_TYPE querytype)
         exit(1);
     }
     struct sockaddr_in DNShost;
-    memset(&DNShost, 0, sizeof(DNShost)); /*在初始化 struct sockaddr_in 结构体之后，我们需要将其余的字节位置都置为0，以免出现意外的问题。*/
+    memset(&DNShost, 0, sizeof(DNShost));
     DNShost.sin_family = AF_INET;
     DNShost.sin_port = htons(DNS_SERVER_PORT);
     DNShost.sin_addr.s_addr = inet_addr(DEFAULT_SERVER);
 
-    DNS_Header *header = generateHeader(Q, QUERY, 0, 0, 0, 1, 0, 0, 0); // 报头参数：_QUERY类型,_操作码,_是否递归查询,_响应码,_是否截断,_问题数,_回答数,_授权数,_附加数
+    DNS_Header *header = generateHeader(Q, QUERY, 1, 0, 0, 1, 0, 0, 0,generateID()); // 报头参数：_QUERY类型,_操作码,_是否递归查询,_响应码,_是否截断,_问题数,_回答数,_授权数,_附加数
     DNS_Query *query = generateQuery(domain, querytype, IN);
 
     unsigned char *buf = (unsigned char *)malloc(sizeof(DNS_Header) + strlen((const char *)query->name) + 1 + sizeof(query->qtype) + sizeof(query->qclass));
@@ -60,10 +62,17 @@ DNS_RR *recv_from_server(int sock, int sendDataOffset)
     struct sockaddr_in DNShost;
     memset(&DNShost, 0, sizeof(DNShost));
     socklen_t len = sizeof(DNShost);
+
+    //超时为5S
+    struct timeval timeout;
+    timeout.tv_sec = TIMEOUT;
+    timeout.tv_usec = 0;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
     int recvlen = recvfrom(sock, recvbuf, RECV_BUF_SIZE, 0, (struct sockaddr *)&DNShost, &len);
+
     if (recvlen < 0)
     {
-        perror("recvfrom");
+        perror("recvfrom error,maybe timeout\n");
         exit(1);
     }
     DNS_Header recvheader;

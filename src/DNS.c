@@ -1,4 +1,5 @@
 #include "../include/DNS.h"
+#include "../include/cJSON.h"
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
@@ -19,7 +20,7 @@ uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC)
     flags |= QR << 15;
     flags |= Opcode << 11;
     flags |= TC << 9;
-    flags |= RA << 7;
+    flags |= RA << 8;
     flags |= 0 << 6; // 设置 Z 标志位为 0
     flags |= 0 << 5; // 设置 AD 标志位为 0，表示未使用 DNSSEC 验证
     flags |= 0 << 4; // 设置 CD 标志位为 0，表示未要求 DNSSEC 验证
@@ -34,11 +35,11 @@ uint16_t generateID()
 }
 
 // 根据参数生成DNS报头，用法：generateHeader(_QUERY类型,_操作码,_是否递归查询,_响应码,_是否截断,_问题数,_回答数,_授权数,_附加数)
-DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum)
+DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC, int queryNum, int answerNum, int authorNum, int addNum, uint16_t ID)
 {
     DNS_Header *header = (DNS_Header *)malloc(sizeof(DNS_Header));
     memset(header, 0, sizeof(DNS_Header));
-    header->id = htons(generateID());
+    header->id = htons(ID);
     header->flags = htons(setFlag(type, Opcode, RA, RCODE, TC));
     header->queryNum = htons(queryNum);
     header->answerNum = htons(answerNum);
