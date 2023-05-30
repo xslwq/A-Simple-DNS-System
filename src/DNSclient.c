@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 #define RECV_BUF_SIZE 500             // 接收缓冲区大小
-#define DEFAULT_SERVER "127.0.0.1"    // 默认DNS服务器地址
+#define DEFAULT_SERVER "8.8.8.8"    // 默认DNS服务器地址
 #define DNS_SERVER_PORT 53            // DNS服务器端口
 #define TIMEOUT 5                     // 超时时间
 

@@ -96,6 +96,7 @@ int main()
         {
             DNS_Query *recvquery = getBufferQuery(buf, buflen);
             printf("recvquery->name:%s\n", recvquery->name);
+            
         }
     }
     close(server_socket);

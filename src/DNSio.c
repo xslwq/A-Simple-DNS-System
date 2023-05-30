@@ -8,17 +8,17 @@
 #include <unistd.h>
 
 
-void addRR(DNS_RR RR, cJSON *array)
+void addRR(DNS_RR* RR, cJSON *array)
 {
     time_t now=time(NULL);
     cJSON *rr = cJSON_CreateObject();
-    cJSON_AddStringToObject(rr, "name", (const char *)RR.name);
-    cJSON_AddNumberToObject(rr, "type", RR.type);
-    cJSON_AddNumberToObject(rr, "_class", RR._class);
-    cJSON_AddNumberToObject(rr, "ttl", RR.ttl);
+    cJSON_AddStringToObject(rr, "name", (const char *)RR->name);
+    cJSON_AddNumberToObject(rr, "type", RR->type);
+    cJSON_AddNumberToObject(rr, "_class", RR->_class);
+    cJSON_AddNumberToObject(rr, "ttl", RR->ttl);
     cJSON_AddNumberToObject(rr, "savetime", now);
-    cJSON_AddNumberToObject(rr, "data_len", RR.data_len);
-    cJSON_AddStringToObject(rr, "rdata", RR.rdata);
+    cJSON_AddNumberToObject(rr, "data_len", RR->data_len);
+    cJSON_AddStringToObject(rr, "rdata", RR->rdata);
     cJSON_AddItemToArray(array, rr);
 }
 
@@ -59,4 +59,59 @@ cJSON *readRRArray()
     fclose(fp);
     free(json_str);
     return root;
+}
+
+cJSON *getRRbyDomain(char *domain,cJSON *array)
+{
+    cJSON *rr = NULL;
+    cJSON_ArrayForEach(rr, array)
+    {
+        if (strcmp(cJSON_GetObjectItem(rr, "name")->valuestring, domain) == 0)
+        {
+            return rr;
+        }
+    }
+    return NULL;
+}
+
+cJSON *getResultRRarray(char *domain, cJSON *array)
+{
+    cJSON *result = cJSON_CreateArray();
+    while (getRRbyDomain(domain, array) != NULL)
+    {
+        cJSON *rr = getRRbyDomain(domain, array);
+        if((cJSON_GetObjectItem(rr, "savetime")->valuedouble)+(cJSON_GetObjectItem(rr, "ttl")->valuedouble)<(time(NULL))){
+            cJSON_DeleteItemFromArray(array, cJSON_GetArraySize(array) - 1);
+            continue;
+        }
+        cJSON_AddItemToArray(result, rr);
+    }
+    return result;
+}
+
+// generateResultArray(cJSON* ____文件缓存数组 ,const char* ____查询域名)
+//从文件缓存中查找对应的name以获得RR，记得使用CJSON_GetArraySize判断缓存内是否有对应的记录
+cJSON *getResultArraybyName(cJSON* array ,const char* name){
+    cJSON *result = cJSON_CreateArray();
+    if(cJSON_IsArray(array))
+    {
+        cJSON *item = NULL;
+        unsigned int index = 0u;
+        cJSON_ArrayForEach(item, array)
+        {
+            if (cJSON_IsObject(item))
+            {
+                if (cJSON_HasObjectItem(item, "name") && (strcmp(cJSON_GetObjectItem(item, "name")->valuestring,name) == 0))
+                {
+                    if((cJSON_GetObjectItem(item, "savetime")->valuedouble)+(cJSON_GetObjectItem(item, "ttl")->valuedouble)<(time(NULL))){
+                        cJSON_DeleteItemFromArray(array, index);
+                        continue;
+                    }
+                    cJSON_AddItemToArray(result, item);
+                    index++;
+                }
+            }
+        }
+    }
+    return result;
 }

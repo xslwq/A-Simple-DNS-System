@@ -1,0 +1,17 @@
+[{
+		"name":	"www.baidu.com",
+		"type":	1,
+		"_class":	1,
+		"ttl":	1,
+		"savetime":	1685459338,
+		"data_len":	4,
+		"rdata":	"avvq"
+	}, {
+		"name":	"www.zhihu.com",
+		"type":	1,
+		"_class":	1,
+		"ttl":	1,
+		"savetime":	1685459338,
+		"data_len":	4,
+		"rdata":	"pqsd"
+	}]

@@ -18,7 +18,8 @@ typedef struct
 }DNS_RR_SAVE;
 
 void saveRRArray(cJSON *array);
-void addRR(DNS_RR RR, cJSON *array);
+void addRR(DNS_RR* RR, cJSON *array);
 cJSON *readRRArray();
+cJSON *getResultArraybyName(cJSON* array ,const char* name);
 
 #endif
