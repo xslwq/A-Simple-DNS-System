@@ -42,16 +42,7 @@ DNS_Query *getBufferQuery(char *buf, int buflen)
 
 int main()
 {
-
-    FILE *fp = fopen("../data/RR.json", "r+");
-    if (fp == NULL)
-    {
-        printf("JSON not found\n");
-        exit(1);
-    }
-    fclose(fp);
-
-    cJSON *rrJSONarray = cJSON_CreateArray();
+    cJSON *rrJSONarray = NULL;
 
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
@@ -96,7 +87,18 @@ int main()
         {
             DNS_Query *recvquery = getBufferQuery(buf, buflen);
             printf("recvquery->name:%s\n", recvquery->name);
-            
+            cJSON *resultArray = getResultArraybyName(rrJSONarray, recvquery->name);
+            if (resultArray == NULL)
+            {
+                // 开始进行迭代查询
+            }
+            else
+            {
+                // 使用本地cache进行回答
+                int resultArraySize = cJSON_GetArraySize(resultArray);
+                DNS_RR *resultRRArrays = malloc(resultArraySize * sizeof(DNS_RR));
+                
+            }
         }
     }
     close(server_socket);

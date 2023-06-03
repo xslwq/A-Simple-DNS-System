@@ -7,10 +7,9 @@
 #include <time.h>
 #include <unistd.h>
 
-
-void addRR(DNS_RR* RR, cJSON *array)
+void addRR(DNS_RR *RR, cJSON *array)
 {
-    time_t now=time(NULL);
+    time_t now = time(NULL);
     cJSON *rr = cJSON_CreateObject();
     cJSON_AddStringToObject(rr, "name", (const char *)RR->name);
     cJSON_AddNumberToObject(rr, "type", RR->type);
@@ -35,15 +34,18 @@ cJSON *readRRArray()
     FILE *fp = fopen("../data/RR.json", "r");
     if (fp == NULL)
     {
-        printf("Failed to open file\n");
-        exit(1);
+        printf("Failed to open file,creating cache file...\n");
+        fp = fopen("../data/RR.json", "w+");
+        fclose(fp);
+        cJSON *root = cJSON_CreateArray();
+        return root;
     }
     char *json_str = NULL;
     size_t len = 0;
     ssize_t read = getline(&json_str, &len, fp);
     if (read == -1)
     {
-        printf("Failed to read file\n");
+        printf("Failed to read file,delete it and restart\n");
         exit(1);
     }
     cJSON *root = cJSON_Parse(json_str);
@@ -53,6 +55,7 @@ cJSON *readRRArray()
         if (error_ptr != NULL)
         {
             printf("Error before: %s\n", error_ptr);
+            printf("Failed to parse json file,delete it and restart\n");
         }
         exit(1);
     }
@@ -61,7 +64,7 @@ cJSON *readRRArray()
     return root;
 }
 
-cJSON *getRRbyDomain(char *domain,cJSON *array)
+cJSON *getRRbyDomain(char *domain, cJSON *array)
 {
     cJSON *rr = NULL;
     cJSON_ArrayForEach(rr, array)
@@ -74,26 +77,12 @@ cJSON *getRRbyDomain(char *domain,cJSON *array)
     return NULL;
 }
 
-cJSON *getResultRRarray(char *domain, cJSON *array)
+// generateResultArray(cJSON* ____文件缓存数组 ,const char* ____查询域名)
+// 从文件缓存中查找对应的name以获得RR，记得使用CJSON_GetArraySize判断缓存内是否有对应的记录
+cJSON *getResultArraybyName(cJSON *array, const char *name)
 {
     cJSON *result = cJSON_CreateArray();
-    while (getRRbyDomain(domain, array) != NULL)
-    {
-        cJSON *rr = getRRbyDomain(domain, array);
-        if((cJSON_GetObjectItem(rr, "savetime")->valuedouble)+(cJSON_GetObjectItem(rr, "ttl")->valuedouble)<(time(NULL))){
-            cJSON_DeleteItemFromArray(array, cJSON_GetArraySize(array) - 1);
-            continue;
-        }
-        cJSON_AddItemToArray(result, rr);
-    }
-    return result;
-}
-
-// generateResultArray(cJSON* ____文件缓存数组 ,const char* ____查询域名)
-//从文件缓存中查找对应的name以获得RR，记得使用CJSON_GetArraySize判断缓存内是否有对应的记录
-cJSON *getResultArraybyName(cJSON* array ,const char* name){
-    cJSON *result = cJSON_CreateArray();
-    if(cJSON_IsArray(array))
+    if (cJSON_IsArray(array))
     {
         cJSON *item = NULL;
         unsigned int index = 0u;
@@ -101,9 +90,10 @@ cJSON *getResultArraybyName(cJSON* array ,const char* name){
         {
             if (cJSON_IsObject(item))
             {
-                if (cJSON_HasObjectItem(item, "name") && (strcmp(cJSON_GetObjectItem(item, "name")->valuestring,name) == 0))
+                if (cJSON_HasObjectItem(item, "name") && (strcmp(cJSON_GetObjectItem(item, "name")->valuestring, name) == 0))
                 {
-                    if((cJSON_GetObjectItem(item, "savetime")->valuedouble)+(cJSON_GetObjectItem(item, "ttl")->valuedouble)<(time(NULL))){
+                    if ((cJSON_GetObjectItem(item, "savetime")->valuedouble) + (cJSON_GetObjectItem(item, "ttl")->valuedouble) < (time(NULL)))
+                    {
                         cJSON_DeleteItemFromArray(array, index);
                         continue;
                     }
@@ -114,4 +104,27 @@ cJSON *getResultArraybyName(cJSON* array ,const char* name){
         }
     }
     return result;
+}
+
+// praseResult(cJSON* ____查询结果数组)！！！注意！！！这个函数会释放掉传入的cJSON对象
+DNS_RR* praseResult(cJSON *result)
+{
+    DNS_RR *resultRRarrays = malloc(cJSON_GetArraySize(result) * sizeof(DNS_RR));
+    cJSON *item = NULL;
+    unsigned int index = 0u;
+    cJSON_ArrayForEach(item, result)
+    {
+        if (cJSON_IsObject(item))
+        {
+            resultRRarrays[index].name = cJSON_GetObjectItem(item, "name")->valuestring;
+            resultRRarrays[index].type = cJSON_GetObjectItem(item, "type")->valueint;
+            resultRRarrays[index]._class = cJSON_GetObjectItem(item, "_class")->valueint;
+            resultRRarrays[index].ttl = cJSON_GetObjectItem(item, "ttl")->valueint;
+            resultRRarrays[index].data_len = cJSON_GetObjectItem(item, "data_len")->valueint;
+            resultRRarrays[index].rdata = strdup(cJSON_GetObjectItem(item, "rdata")->valuestring);
+            index++;
+        }
+    }
+    free(result);
+    return resultRRarrays;
 }
