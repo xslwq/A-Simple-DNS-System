@@ -23,5 +23,13 @@
 		"savetime":	1685860235,
 		"data_len":	17,
 		"rdata":	"20mx50.baidu.com"
+	},{
+		"name":	"mx50.baidu.com",
+		"type":	1,
+		"_class":	1,
+		"ttl":	1000000,
+		"savetime":	1685860235,
+		"data_len":	4,
+		"rdata":	"wq3r"
 	}
 ]

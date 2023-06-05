@@ -10,7 +10,7 @@
 int main()
 {
     cJSON *RRarray = readRRArray();
-    char *domain2 = "www.baidu.com";
+    char *domain2 = "mx50.baidu.com";
     
     cJSON *item1=NULL;
     cJSON_ArrayForEach(item1, RRarray)
@@ -18,7 +18,7 @@ int main()
         printf("%s\n", cJSON_GetObjectItem(item1, "name")->valuestring);
         printf("%d\n", cJSON_GetObjectItem(item1, "type")->valueint);
     }
-    cJSON* awnserArray =  getResultArraybyName(RRarray,domain2, CNAME);
-    printf("%d\n", cJSON_GetArraySize(awnserArray));
+    cJSON* awnserArray =  getResultArraybyName(RRarray,domain2, A);
+    printf("resultsize:%d\n", cJSON_GetArraySize(awnserArray));
     return 0;
 }

@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define RECV_BUF_SIZE 500             // 接收缓冲区大小
-#define DEFAULT_SERVER "8.8.8.8"    // 默认DNS服务器地址
-#define DNS_SERVER_PORT 53            // DNS服务器端口
-#define TIMEOUT 5                     // 超时时间
+#define RECV_BUF_SIZE 500        // 接收缓冲区大小
+#define DEFAULT_SERVER "127.0.0.1" // 默认DNS服务器地址
+#define DNS_SERVER_PORT 53       // DNS服务器端口
+#define TIMEOUT 5                // 超时时间
 
 DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum);
 DNS_RR *recv_from_server(int sock, int sendDataOffset);
@@ -33,7 +33,7 @@ int client_to_server(const char *domain, DNS_QUERY_TYPE querytype)
     DNShost.sin_port = htons(DNS_SERVER_PORT);
     DNShost.sin_addr.s_addr = inet_addr(DEFAULT_SERVER);
 
-    DNS_Header *header = generateHeader(Q, QUERY, 1, 0, 0, 1, 0, 0, 0,generateID()); // 报头参数：_QUERY类型,_操作码,_是否递归查询,_响应码,_是否截断,_问题数,_回答数,_授权数,_附加数
+    DNS_Header *header = generateHeader(Q, QUERY, 1, 0, 0, 1, 0, 0, 0, generateID()); // 报头参数：_QUERY类型,_操作码,_是否递归查询,_响应码,_是否截断,_问题数,_回答数,_授权数,_附加数
     DNS_Query *query = generateQuery(domain, querytype, IN);
 
     unsigned char *buf = (unsigned char *)malloc(sizeof(DNS_Header) + strlen((const char *)query->name) + 1 + sizeof(query->qtype) + sizeof(query->qclass));
@@ -63,7 +63,7 @@ DNS_RR *recv_from_server(int sock, int sendDataOffset)
     memset(&DNShost, 0, sizeof(DNShost));
     socklen_t len = sizeof(DNShost);
 
-    //超时为5S
+    // 超时为5S
     struct timeval timeout;
     timeout.tv_sec = TIMEOUT;
     timeout.tv_usec = 0;
@@ -111,7 +111,7 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
     uint16_t comp = (buf[ptr] << 8) | buf[ptr + 1];
     for (int i = 0; i < awnserNum; i++)
     {
-        if ((comp & 0xc000) >> 14 != 0x03) // RR非压缩指针
+        if ((comp & 0xc000) >> 14 != 0x03) // RR非压缩指针 ,以下已废弃，因为默认name采用压缩指针
         {
             size = 0;
             for (int j = ptr; buf[j] != 0; j++)
@@ -163,7 +163,7 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             {
             case A:
             {
-                //bug:malloc: corrupted top size
+                // bug:malloc: corrupted top size
                 arrayRR[i].rdata = (unsigned char *)malloc(arrayRR[i].data_len * sizeof(char));
                 memcpy(arrayRR[i].rdata, buf + ptr, arrayRR[i].data_len);
                 ptr += arrayRR[i].data_len;
@@ -176,8 +176,8 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 printf(" ttl:%u\n", arrayRR[i].ttl);
                 printf(" data_len:%u\n", arrayRR[i].data_len);
                 printf(" IPaddress:");
-                int a[4]={0};
-                for(int j = 0; j < arrayRR[i].data_len-1; j++)
+                int a[4] = {0};
+                for (int j = 0; j < arrayRR[i].data_len - 1; j++)
                 {
                     a[j] = arrayRR[i].rdata[j];
                 }
@@ -192,7 +192,7 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 memcpy(rdata, buf + ptr, 2);
                 ptr += 2;
                 char *tempdomain = dealCompressPointer(buf, ptr);
-                char* tempdomain1 = (unsigned char *)dns_format_to_domain(tempdomain);
+                char *tempdomain1 = (unsigned char *)dns_format_to_domain(tempdomain);
                 int domainlen = strlen(tempdomain + 2) + 3;
                 memcpy(rdata + 2, tempdomain, domainlen);
                 arrayRR[i].rdata = malloc(domainlen * sizeof(char) + 2);
@@ -206,13 +206,13 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 printf(" class:%s\n", queryClasstoString(arrayRR[i]._class));
                 printf(" ttl:%us\n", arrayRR[i].ttl);
                 printf(" data_len:%u\n", arrayRR[i].data_len);
-                uint16_t preference= (arrayRR[i].rdata[0] << 8) | arrayRR[i].rdata[1];
+                uint16_t preference = (arrayRR[i].rdata[0] << 8) | arrayRR[i].rdata[1];
                 printf(" preference:%u\n", preference);
-                char* exchange = dns_format_to_domain(arrayRR[i].rdata+2);
+                char *exchange = dns_format_to_domain(arrayRR[i].rdata + 2);
                 printf(" exchange:");
-                for(int j=0;j<domainlen;j++)
+                for (int j = 0; j < domainlen; j++)
                 {
-                    printf("%c",tempdomain1[j]);
+                    printf("%c", tempdomain1[j]);
                 }
                 printf("\n");
                 free(tempdomain);
@@ -222,10 +222,10 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             }
             case CNAME:
             {
-                char* tempdomain = dealCompressPointer(buf, ptr);
-                char* tempdomain1 = (unsigned char *)dns_format_to_domain(tempdomain);
+                char *tempdomain = dealCompressPointer(buf, ptr);
+                char *tempdomain1 = (unsigned char *)dns_format_to_domain(tempdomain);
                 ptr += arrayRR[i].data_len;
-                arrayRR[i].data_len = strlen(tempdomain+1) + 1;
+                arrayRR[i].data_len = strlen(tempdomain + 1) + 1;
                 arrayRR[i].rdata = (char *)malloc(arrayRR[i].data_len * sizeof(char));
                 memcpy(arrayRR[i].rdata, tempdomain, arrayRR[i].data_len);
 
@@ -236,9 +236,9 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 printf(" ttl:%us\n", arrayRR[i].ttl);
                 printf(" data_len:%u\n", arrayRR[i].data_len);
                 printf(" cname:");
-                for(int j=0;j<arrayRR[i].data_len-1;j++)
+                for (int j = 0; j < arrayRR[i].data_len - 1; j++)
                 {
-                    printf("%c",tempdomain1[j]);
+                    printf("%c", tempdomain1[j]);
                 }
                 printf("\n");
 
@@ -253,9 +253,60 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
             }
         }
     }
+    if (arrayRR[0].type == MX)
+    {
+        uint16_t additional = ntohs(buf[10] << 8 | buf[11]);
+        printf("additional:%u\n", additional);
+        if (additional != 0)
+        {
+            DNS_RR *additionalRR = (DNS_RR *)malloc(additional * sizeof(DNS_RR)); 
+            for (int i = 0; i < additional; i++)
+            {
+                size = 0;
+                uint16_t compptr = ((buf[ptr] << 8) | buf[ptr + 1]) & 0x3fff;
+                // printf("compptr:%u\n", compptr);
+                for (int j = compptr;; j++)
+                {
+                    if (buf[j] == 0)
+                    {
+                        size = j - compptr + 1;
+                        break;
+                    }
+                }
+                // printf("size:%d\n", size);
+                additionalRR[i].name = (char *)malloc(size * sizeof(char));
+                memcpy(additionalRR[i].name, buf + compptr, size);
+                additionalRR[i].name = (unsigned char *)dns_format_to_domain(additionalRR[i].name);
+                ptr += 2;
+                memcpy(&(additionalRR[i].type), buf + ptr, 2);
+                memcpy(&(additionalRR[i]._class), buf + ptr + 2, 2);
+                memcpy(&(additionalRR[i].ttl), buf + ptr + 4, 4);
+                memcpy(&(additionalRR[i].data_len), buf + ptr + 8, 2);
+                additionalRR[i].type = ntohs(additionalRR[i].type);
+                additionalRR[i]._class = ntohs(additionalRR[i]._class);
+                additionalRR[i].ttl = ntohl(additionalRR[i].ttl);
+                additionalRR[i].data_len = ntohs(additionalRR[i].data_len);
+                ptr += 10;
+
+                printf("Additionalrr %d:\n", i + 1);
+                printf(" name:%s\n", additionalRR[i].name);
+                printf(" type:%s\n", querytypetoString(additionalRR[i].type));
+                printf(" class:%u\n", additionalRR[i]._class);
+                printf(" ttl:%u\n", additionalRR[i].ttl);
+                printf(" data_len:%u\n", additionalRR[i].data_len);
+                printf(" IPaddress:");
+                int a[4] = {0};
+                for (int j = 0; j < additionalRR[i].data_len - 1; j++)
+                {
+                    a[j] = additionalRR[i].rdata[j];
+                }
+                printf("%d.%d.%d.%d\n", a[0], a[1], a[2], a[3]);
+                printf("\n");
+            }
+        }
+    }
     return arrayRR;
 }
-
 
 int main(int argc, char *argv[])
 {
