@@ -1,17 +1,27 @@
-[{
+[
+	{
+		"name":	"www.baidu.com",
+		"type":	5,
+		"_class":	1,
+		"ttl":	1000000,
+		"savetime":	1685860235,
+		"data_len":	17,
+		"rdata":	"www.a.shifen.com"
+	},{
 		"name":	"www.baidu.com",
 		"type":	1,
 		"_class":	1,
-		"ttl":	10,
-		"savetime":	1685462352,
+		"ttl":	1000000,
+		"savetime":	1685860235,
 		"data_len":	4,
 		"rdata":	"avvq"
-	}, {
+	},{
 		"name":	"www.baidu.com",
-		"type":	1,
-		"_class":	5,
-		"ttl":	10,
-		"savetime":	1685462352,
+		"type":	15,
+		"_class":	1,
+		"ttl":	1000000,
+		"savetime":	1685860235,
 		"data_len":	17,
-		"rdata":	"www.a.shifen.com"
-	}]
+		"rdata":	"20mx50.baidu.com"
+	}
+]
