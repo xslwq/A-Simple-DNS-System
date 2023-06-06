@@ -61,14 +61,8 @@ typedef enum
     A = 1,
     NS = 2,
     CNAME = 5,
-    SOA = 6,
     PTR = 12,
     MX = 15,
-    TXT = 16,
-    AAAA = 28,
-    SRV = 33,
-    AXFR = 252,
-    ANY = 255
 } DNS_QUERY_TYPE;
 
 typedef enum
@@ -88,6 +82,8 @@ char *dns_format_to_domain(unsigned char *dns_format);
 char* querytypetoString(DNS_QUERY_TYPE type);
 char* queryClasstoString(DNS_QUERY_CLASS class);
 char *dealCompressPointer(char *buf, int ptr);
+char *CharIPtoIPString(const char* CharIP);
+char* IPStringtocharIP(const char* IPString);
 
 DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLASS qclass);
 
@@ -95,8 +91,11 @@ unsigned char *domain_to_dns_format(const char *domain);
 unsigned char *bind_header_query(DNS_Header *header, DNS_Query *query);
 
 void isNOERROR(uint16_t flags);
+void parseHeader(DNS_Header *header);
 
 DNS_QUERY_TYPE stringToQueryType(const char* str);
 
 DNS_QUERY_CLASS stringtoQueryClass(char* str);
+
+
 #endif

@@ -90,7 +90,7 @@ DNS_RR *recv_from_server(int sock, int sendDataOffset)
     recvheader.addNum = ntohs(recvheader.addNum);
     isNOERROR(recvheader.flags);
 
-    if (recvheader.answerNum != 0 && recvheader.authorNum == 0 && recvheader.addNum == 0)
+    if (recvheader.answerNum != 0 && recvheader.authorNum == 0 )
     {
         DNS_RR *arrayRR = getRR(recvbuf, sendDataOffset, recvheader.answerNum);
         return arrayRR;
@@ -255,8 +255,10 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
     }
     if (arrayRR[0].type == MX)
     {
-        uint16_t additional = ntohs(buf[10] << 8 | buf[11]);
-        printf("additional:%u\n", additional);
+        uint16_t additional ;
+        memcpy(&additional, buf + 10, 2);
+        additional = ntohs(additional);
+
         if (additional != 0)
         {
             DNS_RR *additionalRR = (DNS_RR *)malloc(additional * sizeof(DNS_RR)); 
@@ -287,6 +289,8 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 additionalRR[i].ttl = ntohl(additionalRR[i].ttl);
                 additionalRR[i].data_len = ntohs(additionalRR[i].data_len);
                 ptr += 10;
+                additionalRR[i].rdata = (char *)malloc(additionalRR[i].data_len * sizeof(char));
+                memcpy(additionalRR[i].rdata, buf + ptr, additionalRR[i].data_len);
 
                 printf("Additionalrr %d:\n", i + 1);
                 printf(" name:%s\n", additionalRR[i].name);
@@ -296,7 +300,7 @@ DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
                 printf(" data_len:%u\n", additionalRR[i].data_len);
                 printf(" IPaddress:");
                 int a[4] = {0};
-                for (int j = 0; j < additionalRR[i].data_len - 1; j++)
+                for (int j = 0; j < additionalRR[i].data_len ; j++)
                 {
                     a[j] = additionalRR[i].rdata[j];
                 }

@@ -9,8 +9,8 @@
 
 int main()
 {
-    cJSON *RRarray = readRRArray();
-    char *domain2 = "mx50.baidu.com";
+    cJSON *RRarray = readRRArray("../data/RR.json");
+    char *domain2 = "www.bupt.com";
     
     cJSON *item1=NULL;
     cJSON_ArrayForEach(item1, RRarray)

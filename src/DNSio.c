@@ -29,18 +29,17 @@ void saveRRArray(cJSON *array)
     fclose(fp);
 }
 
-cJSON *readRRArray()
+cJSON *readRRArray(char *path)
 {
-    FILE *fp = fopen("../data/RR.json", "r");
+    FILE *fp = fopen(path, "r");
     if (fp == NULL)
     {
         printf("Failed to open file,creating cache file...\n");
-        fp = fopen("../data/RR.json", "w+");
+        fp = fopen(path, "w+");
         fclose(fp);
         cJSON *root = cJSON_CreateArray();
         return root;
     }
-
 
     fseek(fp, 0, SEEK_END);
     long file_size = ftell(fp);
@@ -103,7 +102,7 @@ cJSON *getResultArraybyName(cJSON *array, const char *name, int type)
             {
                 if ((strcmp(cJSON_GetObjectItem(item, "name")->valuestring, name) == 0) && (cJSON_GetObjectItem(item, "type")->valueint == type))
                 {
-                    if ((cJSON_GetObjectItem(item, "savetime")->valuedouble) + (cJSON_GetObjectItem(item, "ttl")->valuedouble) < (time(NULL)))
+                    if ((cJSON_GetObjectItem(item, "savetime")->valuedouble) + (cJSON_GetObjectItem(item, "ttl")->valuedouble) <= (time(NULL)))
                     {
                         cJSON_DeleteItemFromArray(array, index);
                         continue;

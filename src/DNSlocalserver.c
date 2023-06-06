@@ -15,20 +15,11 @@
 
 #define MAX_BUFFER_SIZE 512
 #define LISTEN_PORT 53
-#define MAX_RR_NUM 100
-#define ROOT_SERVER "127.0.0.2"
-#define ROOT_SERVER_PORT 10000
-#define TIME_OUT 3
-
-void parseHeader(DNS_Header *header)
-{
-    header->id = ntohs(header->id);
-    header->flags = ntohs(header->flags);
-    header->queryNum = ntohs(header->queryNum);
-    header->answerNum = ntohs(header->answerNum);
-    header->authorNum = ntohs(header->authorNum);
-    header->addNum = ntohs(header->addNum);
-}
+#define MAX_RR_NUM 100           // 最大缓存条目数
+#define ROOT_SERVER "127.0.0.2"  // 根服务器地址
+#define LOCAL_SERVER "127.0.0.1" // 本地服务器地址
+#define ROOT_SERVER_PORT 53
+#define TIME_OUT 3 // 超时时间
 
 DNS_Query *getBufferQuery(char *buf, int buflen)
 {
@@ -49,11 +40,11 @@ int main()
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     server_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    cJSON *rrJSONarray = readRRArray();
+    cJSON *rrJSONarray = readRRArray("../data/RR.json");
 
     // 绑定地址和端口
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_addr.s_addr = inet_addr(LOCAL_SERVER);
     server_addr.sin_port = htons(LISTEN_PORT);
     bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
     while (1)
@@ -86,41 +77,103 @@ int main()
         }
         if ((recvheader->queryNum == 1) && (recvheader->addNum == 0) && (recvheader->answerNum == 0) && (recvheader->authorNum == 0))
         {
+            int connectclosed = 0;
             DNS_Query *recvquery = getBufferQuery(buf, buflen);
-            char *tempname = strdup(recvquery->name);
-            cJSON *resultArray = getResultArraybyName(rrJSONarray, tempname, recvquery->qtype);
-            free(tempname);
+            if (recvquery->qtype != A && recvquery->qtype != CNAME && recvquery->qtype != MX)
+            {
+                DNS_Header *errheader = generateHeader(R, QUERY, 1, 4, 0, 0, 0, 0, 0, recvheader->id);
+                sendto(server_socket, errheader, sizeof(DNS_Header), 0, (struct sockaddr *)&client_addr, client_addr_len);
+                printf("type not support\n");
+                continue;
+            }
+            cJSON *resultArray = getResultArraybyName(rrJSONarray, recvquery->name, recvquery->qtype);
             if (cJSON_GetArraySize(resultArray) == 0)
             {
                 // 开始进行迭代查询
                 printf("start iteration\n");
                 char sendbuf[MAX_BUFFER_SIZE];
-                memcpy(sendbuf, buf, buflen);
-
-                int sendfd = socket(AF_INET, SOCK_STREAM, 0);
+                uint16_t itrid = generateID();
+                uint16_t msglen = htons(buflen);
+                memcpy(sendbuf, &msglen, 2);
+                memcpy(sendbuf + 2, buf, buflen);
+                memcpy(sendbuf + 2, &itrid, 2);
                 struct sockaddr_in root_addr;
                 root_addr.sin_family = AF_INET;
                 root_addr.sin_addr.s_addr = inet_addr(ROOT_SERVER);
                 root_addr.sin_port = htons(ROOT_SERVER_PORT);
-                int ret = connect(sendfd, (struct sockaddr *)&root_addr, sizeof(root_addr));
-                if (ret < 0)
-                {
-                    perror("can't make connection with root server");
-                    continue;
-                }
-                if (send(sendfd, sendbuf, buflen, 0) < 0)
-                {
-                    perror("send error");
-                    continue;
-                }
+                int recvlen = 0;
                 char recvbuf[MAX_BUFFER_SIZE];
-                // 设置超时时间
-                struct timeval timeout;
-                timeout.tv_sec = TIME_OUT;
-                timeout.tv_usec = 0;
-                setsockopt(sendfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-                int recvlen = recv(sendfd, recvbuf, sizeof(recvbuf), 0);
-
+                while (1)
+                {
+                    int sendfd = socket(AF_INET, SOCK_STREAM, 0);
+                    int ret = connect(sendfd, (struct sockaddr *)&root_addr, sizeof(root_addr));
+                    if (ret < 0)
+                    {
+                        perror("can't make connection with server");
+                        connectclosed = 1;
+                        break;
+                    }
+                    uint16_t id = generateID();
+                    memcpy(sendbuf + 2, &id, 2);
+                    if (send(sendfd, sendbuf, buflen + 2, 0) < 0)
+                    {
+                        perror("send error");
+                        connectclosed = 1;
+                        break;
+                    }
+                    // 设置超时时间
+                    struct timeval timeout;
+                    timeout.tv_sec = TIME_OUT;
+                    timeout.tv_usec = 0;
+                    setsockopt(sendfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+                    memset(recvbuf, 0, sizeof(recvbuf));
+                    int recvlen = recv(sendfd, recvbuf, sizeof(recvbuf), 0);
+                    close(sendfd);
+                    DNS_Header *iterecvheader = malloc(sizeof(DNS_Header));
+                    memcpy(iterecvheader, recvbuf + 2, sizeof(DNS_Header));
+                    parseHeader(iterecvheader);
+                    if ((iterecvheader->flags & 0x0F) == 4)
+                    {
+                        DNS_Header *errheader = generateHeader(R, QUERY, 1, 4, 0, 0, 0, 0, 0, recvheader->id);
+                        sendto(server_socket, errheader, sizeof(DNS_Header), 0, (struct sockaddr *)&client_addr, client_addr_len);
+                        connectclosed = 1;
+                        printf("name server: type not support\n");
+                        break;
+                    }
+                    int ptr = buflen + 2;
+                    DNS_RR *nsRR = malloc(sizeof(DNS_RR));
+                    char *name = dealCompressPointer(recvbuf, ptr);
+                    nsRR->name = name;
+                    ptr += 2;
+                    memcpy(&(nsRR->type), recvbuf + ptr, 2);
+                    nsRR->type = ntohs(nsRR->type);
+                    ptr += 2;
+                    memcpy(&(nsRR->_class), recvbuf + ptr, 2);
+                    ptr += 2;
+                    memcpy(&(nsRR->ttl), recvbuf + ptr, 4);
+                    ptr += 4;
+                    memcpy(&(nsRR->data_len), recvbuf + ptr, 2);
+                    ptr += 2;
+                    ptr += nsRR->data_len;
+                    char ipv[4];
+                    ptr += 12;
+                    if (iterecvheader->answerNum == 1 && (iterecvheader->addNum == 0 || (nsRR->type==MX && iterecvheader->addNum == 1)))
+                    {
+                        char sendbuffer[MAX_BUFFER_SIZE];
+                        memcpy(sendbuffer, recvbuf + 2, recvlen - 2);
+                        recvheader->id = htons(recvheader->id);
+                        memcpy(sendbuffer, &(recvheader->id), 2);
+                        sendto(server_socket, sendbuffer, recvlen - 2, 0, (struct sockaddr *)&client_addr, client_addr_len);
+                        break;
+                    }
+                    memcpy(ipv, recvbuf + recvlen - 4, 4);
+                    char ip[16];
+                    sprintf(ip, "%d.%d.%d.%d", ipv[0], ipv[1], ipv[2], ipv[3]);
+                    printf("nextip: %s\n", ip);
+                    root_addr.sin_addr.s_addr = inet_addr(ip);
+                }
+                if (connectclosed == 1)
+                    continue;
             }
             else
             {
@@ -215,22 +268,18 @@ int main()
                         compptr[i] = index;
                         index += strlen(exchange) + 1;
                     }
-                    for(int i = 0; i < answerNum; i++)
+                    for (int i = 0; i < answerNum; i++)
                     {
-                        char* tempname1=strdup(answerRR[i].rdata+2);
-                        printf("strcmp:%d\n",strcmp(tempname1,"mx50.baidu.com"));
-                        cJSON* additional = getResultArraybyName(rrJSONarray , tempname1 , 1);
-                        cJSON* item=NULL;
-                        cJSON_ArrayForEach(item,rrJSONarray){
-                            printf("name:%s\n",cJSON_GetObjectItem(item,"name")->valuestring);
-                        }
-                        DNS_RR* additionalRR = praseResult(additional);
-                        printf("arraysize:%d\n", cJSON_GetArraySize(additional));
+                        cJSON *rrJSONarray = readRRArray("../data/RR.json");
+                        char *tempname1 = strdup(answerRR[i].rdata + 2);
+                        cJSON *additional = getResultArraybyName(rrJSONarray, tempname1, 1);
+                        cJSON *iter = NULL;
+                        DNS_RR *additionalRR = praseResult(additional);
                         additionalRR[i].ttl = htonl(additionalRR[i].ttl);
                         additionalRR[i]._class = htons(additionalRR[i]._class);
                         additionalRR[i].type = htons(additionalRR[i].type);
                         additionalRR[i].data_len = htons(additionalRR[i].data_len);
-                        uint16_t name = 0xc000 + compptr[i];
+                        uint16_t name = ntohs(0xc000 + compptr[i]);
                         memcpy(sendbuf + index, &name, 2);
                         index += 2;
                         memcpy(sendbuf + index, &(additionalRR[i].type), 2);
@@ -244,8 +293,6 @@ int main()
                         memcpy(sendbuf + index, (additionalRR[i].rdata), 4);
                         index += 4;
                         sendbuf[11] += 1;
-                        free(additionalRR);
-                        cJSON_Delete(additional);
                     }
                     break;
                 }

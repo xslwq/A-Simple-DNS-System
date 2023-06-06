@@ -122,10 +122,6 @@ DNS_QUERY_TYPE stringToQueryType(const char *str)
     {
         return CNAME;
     }
-    else if (strcmp(str, "SOA") == 0)
-    {
-        return SOA;
-    }
     else if (strcmp(str, "PTR") == 0)
     {
         return PTR;
@@ -133,26 +129,6 @@ DNS_QUERY_TYPE stringToQueryType(const char *str)
     else if (strcmp(str, "MX") == 0)
     {
         return MX;
-    }
-    else if (strcmp(str, "TXT") == 0)
-    {
-        return TXT;
-    }
-    else if (strcmp(str, "AAAA") == 0)
-    {
-        return AAAA;
-    }
-    else if (strcmp(str, "SRV") == 0)
-    {
-        return SRV;
-    }
-    else if (strcmp(str, "AXFR") == 0)
-    {
-        return AXFR;
-    }
-    else if (strcmp(str, "ANY") == 0)
-    {
-        return ANY;
     }
     else
     {
@@ -172,22 +148,10 @@ char *querytypetoString(DNS_QUERY_TYPE type)
         return "NS";
     case CNAME:
         return "CNAME";
-    case SOA:
-        return "SOA";
     case PTR:
         return "PTR";
     case MX:
         return "MX";
-    case TXT:
-        return "TXT";
-    case AAAA:
-        return "AAAA";
-    case SRV:
-        return "SRV";
-    case AXFR:
-        return "AXFR";
-    case ANY:
-        return "ANY";
     default:
         return "Invalid query type!";
     }
@@ -322,4 +286,29 @@ char *dealCompressPointer(char *buf, int ptr)
     memcpy(rdata, completedomain, domainlen);
     free(completedomain);
     return rdata;
+}
+
+char* IPStringtocharIP(const char* IPString){
+    char* ip = (char*)malloc(4*sizeof(char));
+    struct in_addr addr;
+    inet_pton(AF_INET, IPString, &addr);
+    memcpy(ip, &addr.s_addr, 4);
+    return ip;
+} 
+char* CharIPtoIPString(const char* CharIP){
+    char* ip = (char*)malloc(16*sizeof(char));
+    struct in_addr addr;
+    memcpy(&addr.s_addr, CharIP, 4);
+    inet_ntop(AF_INET, &addr,ip , INET_ADDRSTRLEN);
+    return ip;
+}
+
+void parseHeader(DNS_Header *header)
+{
+    header->id = ntohs(header->id);
+    header->flags = ntohs(header->flags);
+    header->queryNum = ntohs(header->queryNum);
+    header->answerNum = ntohs(header->answerNum);
+    header->authorNum = ntohs(header->authorNum);
+    header->addNum = ntohs(header->addNum);
 }
