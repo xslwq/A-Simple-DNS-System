@@ -1,0 +1,19 @@
+[
+	{
+		"name":	".bupt.com",
+		"type":	2,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	17,
+		"rdata":	"dns.bupt.com."
+	},{
+		"name":	"dns.bupt.com",
+		"type":	1,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	4,
+		"rdata":	"127.0.0.5"
+	}
+]

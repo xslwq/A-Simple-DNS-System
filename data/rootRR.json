@@ -1,0 +1,35 @@
+[
+	{
+		"name":	".com",
+		"type":	2,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	17,
+		"rdata":	"dns.comserver.net"
+	},{
+		"name":	"dns.comserver.net",
+		"type":	1,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	4,
+		"rdata":	"127.0.0.3"
+	},{
+		"name":	".edu",
+		"type":	2,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	17,
+		"rdata":	"dns.eduserver.net"
+	},{
+		"name":	"dns.eduserver.net",
+		"type":	1,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	4,
+		"rdata":	"127.0.0.4"
+	}
+]

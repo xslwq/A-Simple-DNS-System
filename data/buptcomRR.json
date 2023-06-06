@@ -1,0 +1,36 @@
+[
+	{
+		"name":	"www.bupt.com",
+		"type":	1,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	4,
+		"rdata":	"1*e."
+	},{
+		"name":	"mx.bupt.com",
+		"type":	15,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	16,
+		"rdata":	"20mail.bupt.com"
+	},{
+		"name":	"www.bupt.com",
+		"type":	5,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	11,
+		"rdata":	"bupt.edu.cn"
+	},
+	{
+		"name":	"mail.bupt.com",
+		"type":	1,
+		"_class":	1,
+		"ttl":	10000000,
+		"savetime":	1685860235,
+		"data_len":	4,
+		"rdata":	"s='1"
+	}
+]
