@@ -7,6 +7,7 @@
 #include <time.h>
 #include <unistd.h>
 
+// 加入一个RR到JSON数组中
 void addRR(DNS_RR *RR, cJSON *array)
 {
     time_t now = time(NULL);
@@ -21,6 +22,7 @@ void addRR(DNS_RR *RR, cJSON *array)
     cJSON_AddItemToArray(array, rr);
 }
 
+// 将DNS_RR数组写入文件
 void saveRRArray(cJSON *array)
 {
     FILE *fp = fopen("../data/RR.json", "w+");
@@ -28,7 +30,7 @@ void saveRRArray(cJSON *array)
     fwrite(out, sizeof(char), strlen(out), fp);
     fclose(fp);
 }
-
+// 从文件中读取RR数组
 cJSON *readRRArray(char *path)
 {
     FILE *fp = fopen(path, "r");
@@ -73,7 +75,7 @@ cJSON *readRRArray(char *path)
     free(json_buffer);
     return root;
 }
-
+// 从文件缓存中查找对应的domain以获得RR，记得使用CJSON_GetArraySize判断缓存内是否有对应的记录
 cJSON *getRRbyDomain(char *domain, cJSON *array)
 {
     cJSON *rr = NULL;

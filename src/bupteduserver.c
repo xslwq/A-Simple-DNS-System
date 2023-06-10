@@ -40,7 +40,7 @@ int main()
         ssize_t recvlen = recv(client_socket, buf, MAX_BUFFER_SIZE, 0);
         DNS_Header *header = malloc(sizeof(DNS_Header));
         memcpy(header, buf + 2, 12);
-
+        // 解析查询报文
         DNS_Query *query = malloc(sizeof(DNS_Query));
         memcpy(&(query->qclass), buf + recvlen - 2, 2);
         memcpy(&(query->qtype), buf + recvlen - 4, 2);
@@ -54,6 +54,7 @@ int main()
         parseHeader(header);
         printf("query name: %s\n", query->name);
         printf("query type: %d\n", query->qtype);
+        // 读取本地资源记录
         cJSON *rrJSONarray = readRRArray(PATH);
         cJSON *answer = getResultArraybyName(rrJSONarray, query->name, query->qtype);
         DNS_RR *answerRR = praseResult(answer);

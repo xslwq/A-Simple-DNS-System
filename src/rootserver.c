@@ -57,6 +57,7 @@ int main()
         printf("Query: %s\n", query->name);
         query->name = dns_format_to_domain(query->name);
         printf("Query: %s\n", query->name);
+        // 判断请求域名所属顶级域
         char *suffix = strrchr(query->name, '.');
         recvlen += 2;
         if (suffix != NULL)
@@ -178,9 +179,10 @@ int main()
             }
             else
             {
+                // 不支持就返回错误
                 printf("not supported\n");
                 char sendbuf[MAX_BUFFER_SIZE];
-                DNS_Header *errheader = generateHeader(R, QUERY, 1, 4, 0, 0, 0, 0, 0, header->id);
+                DNS_Header *errheader = generateHeader(R, QUERY, 1, 3, 0, 0, 0, 0, 0, header->id);
                 uint16_t length = 12;
                 length = htons(length);
                 memcpy(sendbuf, &length, 2);

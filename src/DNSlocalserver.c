@@ -20,7 +20,9 @@
 #define LOCAL_SERVER "127.0.0.1" // 本地服务器地址
 #define ROOT_SERVER_PORT 53
 #define TIME_OUT 3 // 超时时间
+#define CACHE_ENABLE 1
 
+// 解析buffer中的DNS报头
 DNS_Query *getBufferQuery(char *buf, int buflen)
 {
     DNS_Query *query = malloc(sizeof(DNS_Query));
@@ -75,6 +77,7 @@ int main()
             printf("queryNum error\n");
             continue;
         }
+        // 检查回答数量
         if ((recvheader->queryNum == 1) && (recvheader->addNum == 0) && (recvheader->answerNum == 0) && (recvheader->authorNum == 0))
         {
             int connectclosed = 0;
@@ -157,15 +160,22 @@ int main()
                     ptr += nsRR->data_len;
                     char ipv[4];
                     ptr += 12;
-                    if (iterecvheader->answerNum == 1 && (iterecvheader->addNum == 0 || (nsRR->type==MX && iterecvheader->addNum == 1)))
+                    // 检查迭代查询的回答数量
+                    if (iterecvheader->answerNum == 1 && (iterecvheader->addNum == 0 || (nsRR->type == MX && iterecvheader->addNum == 1)))
                     {
                         char sendbuffer[MAX_BUFFER_SIZE];
                         memcpy(sendbuffer, recvbuf + 2, recvlen - 2);
                         recvheader->id = htons(recvheader->id);
                         memcpy(sendbuffer, &(recvheader->id), 2);
                         sendto(server_socket, sendbuffer, recvlen - 2, 0, (struct sockaddr *)&client_addr, client_addr_len);
+                        if (CACHE_ENABLE)
+                        {
+                            DNS_RR *cache = malloc(sizeof(DNS_RR));
+                            
+                        }
                         break;
                     }
+                    // 返回查询结果
                     memcpy(ipv, recvbuf + recvlen - 4, 4);
                     char ip[16];
                     sprintf(ip, "%d.%d.%d.%d", ipv[0], ipv[1], ipv[2], ipv[3]);
@@ -268,7 +278,7 @@ int main()
                         compptr[i] = index;
                         index += strlen(exchange) + 1;
                     }
-                    for (int i = 0; i < answerNum; i++)
+                    for (int i = 0; i < answerNum; i++)//对MX记录的附加部分进行处理
                     {
                         cJSON *rrJSONarray = readRRArray("../data/RR.json");
                         char *tempname1 = strdup(answerRR[i].rdata + 2);

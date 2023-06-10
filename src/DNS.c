@@ -14,6 +14,7 @@
 #define DNS_SERVER_PORT 53
 #define RECV_BUF_SIZE 1024
 
+// 生成Flags字段
 uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC)
 {
     uint16_t flags = 0;
@@ -27,7 +28,7 @@ uint16_t setFlag(int QR, int Opcode, int RA, int RCODE, int TC)
     flags |= RCODE;
     return flags;
 }
-
+// 生成随机ID
 uint16_t generateID()
 {
     srand(time(NULL));
@@ -47,7 +48,7 @@ DNS_Header *generateHeader(DNS_TYPE type, int Opcode, int RA, int RCODE, int TC,
     header->addNum = htons(addNum);
     return header;
 }
-
+// 生成DNS查询报文，用法：generateQuery(_域名,_查询类型,_查询类)
 DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLASS qclass)
 {
     DNS_Query *query = (DNS_Query *)malloc(sizeof(DNS_Query));
@@ -57,7 +58,7 @@ DNS_Query *generateQuery(const char *domain, DNS_QUERY_TYPE qtype, DNS_QUERY_CLA
     query->qclass = htons(qclass);
     return query;
 }
-
+// 一般域名转换为DNS格式
 unsigned char *domain_to_dns_format(const char *domain)
 {
     int len = strlen(domain);
@@ -83,7 +84,7 @@ unsigned char *domain_to_dns_format(const char *domain)
     dns_format[len + 1] = '\0';
     return dns_format;
 }
-
+// DNS格式转换为一般域名
 char *dns_format_to_domain(unsigned char *dns_format)
 {
     int len = strlen(dns_format);
@@ -107,7 +108,7 @@ char *dns_format_to_domain(unsigned char *dns_format)
     domain[len - 1] = '\0';
     return domain;
 }
-
+// 字符串转换为查询类型
 DNS_QUERY_TYPE stringToQueryType(const char *str)
 {
     if (strcmp(str, "A") == 0)
@@ -137,7 +138,7 @@ DNS_QUERY_TYPE stringToQueryType(const char *str)
         return 0;
     }
 }
-
+ // 查询类型转换为字符串
 char *querytypetoString(DNS_QUERY_TYPE type)
 {
     switch (type)
@@ -156,7 +157,7 @@ char *querytypetoString(DNS_QUERY_TYPE type)
         return "Invalid query type!";
     }
 }
-
+// 查询错误类型
 void isNOERROR(uint16_t flags)
 {
 
@@ -199,6 +200,7 @@ unsigned char *bind_header_query(DNS_Header *header, DNS_Query *query)
     return buf;
 }
 
+//字符串转网络类型
 DNS_QUERY_CLASS stringtoQueryClass(char *str)
 {
     if (strcmp(str, "IN") == 0)
@@ -225,6 +227,7 @@ DNS_QUERY_CLASS stringtoQueryClass(char *str)
     }
 }
 
+// 网络类型转字符串
 char *queryClasstoString(DNS_QUERY_CLASS class)
 {
     switch (class)
@@ -242,6 +245,7 @@ char *queryClasstoString(DNS_QUERY_CLASS class)
     }
 }
 
+// 根据buffer和指针处理压缩指针
 char *dealCompressPointer(char *buf, int ptr)
 {
     int domainlen = 0;
@@ -288,6 +292,7 @@ char *dealCompressPointer(char *buf, int ptr)
     return rdata;
 }
 
+// 字符串IP转换为网络类型
 char* IPStringtocharIP(const char* IPString){
     char* ip = (char*)malloc(4*sizeof(char));
     struct in_addr addr;
@@ -295,6 +300,7 @@ char* IPStringtocharIP(const char* IPString){
     memcpy(ip, &addr.s_addr, 4);
     return ip;
 } 
+// 网络类型IP转换为字符串
 char* CharIPtoIPString(const char* CharIP){
     char* ip = (char*)malloc(16*sizeof(char));
     struct in_addr addr;
@@ -303,6 +309,7 @@ char* CharIPtoIPString(const char* CharIP){
     return ip;
 }
 
+// 翻转报头
 void parseHeader(DNS_Header *header)
 {
     header->id = ntohs(header->id);

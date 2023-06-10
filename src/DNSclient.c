@@ -15,10 +15,8 @@
 #define DNS_SERVER_PORT 53       // DNS服务器端口
 #define TIMEOUT 5                // 超时时间
 
-DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum);
-DNS_RR *recv_from_server(int sock, int sendDataOffset);
-int client_to_server(const char *domain, DNS_QUERY_TYPE querytype);
 
+// client to server参数：域名，查询类型
 int client_to_server(const char *domain, DNS_QUERY_TYPE querytype)
 {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -55,7 +53,7 @@ int client_to_server(const char *domain, DNS_QUERY_TYPE querytype)
     free(buf);
     return sock;
 }
-
+// recv_from_server参数：socket，发送数据的长度 作用：接收数据并解析
 DNS_RR *recv_from_server(int sock, int sendDataOffset)
 {
     char *recvbuf = (char *)malloc(RECV_BUF_SIZE);
@@ -102,6 +100,7 @@ DNS_RR *recv_from_server(int sock, int sendDataOffset)
     }
 }
 
+// getRR参数：接收缓冲区，发送数据的长度，回答数 作用：解析接收缓冲区中的RR
 DNS_RR *getRR(char *buf, int sendDataOffset, uint16_t awnserNum)
 {
     DNS_RR *arrayRR = (DNS_RR *)malloc(awnserNum * sizeof(DNS_RR));

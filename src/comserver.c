@@ -18,6 +18,7 @@ int main()
     cJSON *rrJSONarray = readRRArray("../data/comRR.json");
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
+    // 创建socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr(COM_SERVER);
@@ -60,7 +61,7 @@ int main()
         printf("suffix: %s\n", suffix);
         if (suffix != NULL)
         {
-            if (strcmp(suffix, ".bupt.com") == 0)
+            if (strcmp(suffix, ".bupt.com") == 0) // 判断是否为com服务器
             {
                 char sendbuf[MAX_BUFFER_SIZE];
                 cJSON *com = getResultArraybyName(rrJSONarray, suffix, NS);
@@ -119,9 +120,10 @@ int main()
             }
             else
             {
+                // 如果不是com服务器，返回not supported
                 printf("not supported\n");
                 char sendbuf[MAX_BUFFER_SIZE];
-                DNS_Header *errheader = generateHeader(R, QUERY, 1, 4, 0, 0, 0, 0, 0, header->id);
+                DNS_Header *errheader = generateHeader(R, QUERY, 1, 3, 0, 0, 0, 0, 0, header->id);
                 uint16_t length = 12;
                 length = htons(length);
                 memcpy(sendbuf, &length, 2);
